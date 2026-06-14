@@ -1,0 +1,22 @@
+{
+  "//": "See ../supply-chain.md §3. Pins devDependencies to exact; runtime/peer keep ranges.",
+  "versionGroups": [
+    {
+      "label": "Deps that appear as both a wide peer range and a pinned dev version — ignore version unification (the lockfile still pins the resolved version). Edit this list to match your repo.",
+      "dependencies": ["eslint", "typescript", "@typescript-eslint/utils"],
+      "isIgnored": true
+    }
+  ],
+  "semverGroups": [
+    {
+      "label": "devDependencies are pinned to exact versions (supply-chain hardening)",
+      "dependencyTypes": ["dev"],
+      "range": ""
+    },
+    {
+      "label": "runtime + peer deps keep author-defined ranges so consumers can dedupe",
+      "dependencyTypes": ["prod", "peer"],
+      "isIgnored": true
+    }
+  ]
+}

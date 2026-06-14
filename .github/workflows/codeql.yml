@@ -1,0 +1,36 @@
+name: CodeQL (reusable)
+
+# Reusable CodeQL analysis. Call it from a repo:
+#
+#   jobs:
+#     codeql:
+#       permissions: { security-events: write, contents: read }
+#       uses: danfry1/standards/.github/workflows/codeql.yml@v1
+#
+# See ../../supply-chain.md §7.
+on:
+  workflow_call:
+    inputs:
+      languages:
+        description: Comma-separated CodeQL languages to analyze.
+        type: string
+        default: javascript-typescript
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@87557b9c84dde89fdd9b10e88954ac2f4248e463 # v4
+        with:
+          languages: ${{ inputs.languages }}
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@87557b9c84dde89fdd9b10e88954ac2f4248e463 # v4

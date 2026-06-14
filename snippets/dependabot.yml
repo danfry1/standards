@@ -1,0 +1,39 @@
+# Copy to .github/dependabot.yml. See ../supply-chain.md §2.
+# Swap `bun` for `npm`/`pnpm` if needed. For a monorepo, the bun ecosystem at
+# directory: / covers workspace packages via the root lockfile.
+version: 2
+updates:
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    # Hold update PRs until a version has been public for at least 7 days,
+    # long enough for most malicious releases to be yanked. Mirrors the
+    # install-time minimumReleaseAge gate in bunfig.toml.
+    cooldown:
+      default-days: 7
+      semver-major-days: 7
+      semver-minor-days: 7
+      semver-patch-days: 7
+    # Optional: keep @types/node on the major matching your engines.node floor.
+    # ignore:
+    #   - dependency-name: "@types/node"
+    #     update-types: ["version-update:semver-major"]
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        update-types: [minor, patch]
+      production-dependencies:
+        dependency-type: production
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
