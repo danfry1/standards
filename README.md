@@ -1,14 +1,15 @@
 # standards
 
-My engineering baseline for TypeScript libraries — supply-chain hardening, packaging, and release practices, in one place so individual repos can point here instead of copying each other.
+My engineering baseline for TypeScript libraries and Rust CLIs/TUIs — supply-chain hardening, packaging, and release practices, in one place so individual repos (and an agent bootstrapping a new one) can point here instead of copying each other.
 
-Used by [bonsai-js](https://github.com/danfry1/bonsai-js), [reflow-ts](https://github.com/danfry1/reflow-ts), and [faultline](https://github.com/danfry1/faultline).
+Used by [bonsai-js](https://github.com/danfry1/bonsai-js), [reflow-ts](https://github.com/danfry1/reflow-ts), and [faultline](https://github.com/danfry1/faultline) (TypeScript), and [hacker-news-tui](https://github.com/danfry1/hacker-news-tui) (Rust).
 
 ## Contents
 
 - **[supply-chain.md](./supply-chain.md)** — the security baseline: release-age gate, dependency cooldown, exact pinning (syncpack), SHA-pinned actions, least-privilege CI, provenance, CodeQL + Scorecard. Each control has the rationale and a copy-paste snippet.
-- **[library-setup.md](./library-setup.md)** — the packaging/release baseline: Bun workspaces, tsdown builds, dual ESM/CJS exports, `attw` export validation, a coverage gate, a Node-version compatibility matrix, and Changesets releases.
-- **[snippets/](./snippets)** — ready-to-copy config files (`bunfig.toml`, `.syncpackrc.json`, `dependabot.yml`).
+- **[library-setup.md](./library-setup.md)** — the TypeScript packaging/release baseline: Bun workspaces, tsdown builds, dual ESM/CJS exports, `attw` export validation, a coverage gate, a Node-version compatibility matrix, and Changesets releases.
+- **[rust-release.md](./rust-release.md)** — the Rust release/distribution baseline: a keyless, tag-triggered pipeline shipping to crates.io (OIDC Trusted Publishing), GitHub Releases (binaries), Homebrew (via a GitHub App, not a PAT), and Nix. Written so an agent can set up a new tool end to end; flags which steps are browser-only.
+- **[snippets/](./snippets)** — ready-to-copy config files (`bunfig.toml`, `.syncpackrc.json`, `dependabot.yml`, `rust-release.yml`).
 - **[.github/workflows/](./.github/workflows)** — **reusable** workflows (`workflow_call`) for CodeQL and Scorecard, so each repo invokes them in a few lines instead of duplicating them.
 
 ## How a repo adopts this
