@@ -9,7 +9,7 @@ Used by [bonsai-js](https://github.com/danfry1/bonsai-js), [reflow-ts](https://g
 - **[supply-chain.md](./supply-chain.md)** — the security baseline: release-age gate, dependency cooldown, exact pinning (syncpack), SHA-pinned actions, least-privilege CI, provenance, CodeQL + Scorecard. Each control has the rationale and a copy-paste snippet.
 - **[library-setup.md](./library-setup.md)** — the TypeScript packaging/release baseline: Bun workspaces, tsdown builds, dual ESM/CJS exports, `attw` export validation, a coverage gate, a Node-version compatibility matrix, and Changesets releases.
 - **[rust-release.md](./rust-release.md)** — the Rust release/distribution baseline: a keyless, tag-triggered pipeline shipping to crates.io (OIDC Trusted Publishing), GitHub Releases (binaries), Homebrew (via a GitHub App, not a PAT), and Nix. Written so an agent can set up a new tool end to end; flags which steps are browser-only.
-- **[snippets/](./snippets)** — ready-to-copy config files (`bunfig.toml`, `.syncpackrc.json`, `dependabot.yml`, `rust-release.yml`).
+- **[snippets/](./snippets)** — ready-to-copy files: TypeScript (`bunfig.toml`, `.syncpackrc.json`, `dependabot.yml`) and Rust (`rust-release.yml`, `rust-ci.yml`, `demo.tape`, `record.sh`).
 - **[.github/workflows/](./.github/workflows)** — **reusable** workflows (`workflow_call`) for CodeQL and Scorecard, so each repo invokes them in a few lines instead of duplicating them.
 
 ## How a repo adopts this

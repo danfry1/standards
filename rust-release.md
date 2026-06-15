@@ -7,7 +7,8 @@ The packaging/release baseline for a Rust CLI or TUI: ship one `git tag` to crat
 Read this top to bottom, then do the work in this order. Most of it you can automate; two steps **must** be done by a human in a browser — surface those clearly and don't try to fake them.
 
 **You (the agent) can do directly:**
-- Write `release.yml`, `ci.yml`, and `flake.nix` from the snippets here (fill in crate name, bin name, owner, targets). The full workflow is in [snippets/rust-release.yml](./snippets/rust-release.yml).
+- Write `release.yml`, `ci.yml`, and `flake.nix` from the snippets here (fill in crate name, bin name, owner, targets): [rust-release.yml](./snippets/rust-release.yml), [rust-ci.yml](./snippets/rust-ci.yml).
+- Set up `CHANGELOG.md` (§8) and the VHS demo scaffold (§9) — [demo.tape](./snippets/demo.tape), [record.sh](./snippets/record.sh).
 - Resolve every action tag to a commit SHA and pin it (`gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`).
 - Set the App ID variable once the human gives it to you: `gh variable set TAP_BUMP_APP_ID ...`.
 - Verify: `cargo build`/`test`/`clippy`, `nix flake check`, YAML lint, and after a release, watch the run with `gh run watch`.
@@ -287,9 +288,48 @@ homebrew-bump:
 - **`cargo audit` in CI** (`taiki-e/install-action` with `tool: cargo-audit`) on every push.
 - Reproducible release profile: `strip = true`, `lto = true`, `codegen-units = 1`, `panic = "abort"`.
 
-## 7. Shared CI hardening
+## 7. CI workflow (`ci.yml`)
 
-Everything in [supply-chain.md §5–6](./supply-chain.md) applies: **SHA-pin every action** (version in a trailing comment), **least-privilege `permissions`** (read-only floor, elevate per job), and **never inline `github.*` into `run:`** — pass via `env:`. Also set `persist-credentials: false` on any checkout that doesn't push.
+Every push and PR runs format + clippy (warnings as errors) + tests, plus a separate `cargo audit` job. Read-only permissions; SHA-pinned actions; `rust-cache` for speed. Copy-paste in [snippets/rust-ci.yml](./snippets/rust-ci.yml). The essentials:
+
+```yaml
+name: CI
+on: { push: { branches: [main] }, pull_request: {} }
+permissions:
+  contents: read
+concurrency: { group: ci-${{ github.ref }}, cancel-in-progress: true }
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings        # warnings fail the build everywhere, not just clippy
+jobs:
+  check:    # fmt --check, clippy --all-targets -D warnings, test --all (+ Swatinem/rust-cache)
+  audit:    # taiki-e/install-action tool: cargo-audit, then `cargo audit`
+```
+
+`cargo audit` here is the runtime guard against advisories in the locked tree; it pairs with the Dependabot cooldown from [supply-chain.md §2](./supply-chain.md#2-dependency-update-cooldown).
+
+## 8. Changelog & versioning
+
+- **Semantic Versioning.** `0.x` while the surface is unstable; bump minor for features, patch for fixes.
+- **Keep a Changelog.** Maintain `CHANGELOG.md` with an `## [Unreleased]` section that you rename to `## [X.Y.Z] - YYYY-MM-DD` at release. Group entries under `Added` / `Changed` / `Fixed` / `Removed`.
+- **The version lives once** — in `Cargo.toml`. The flake derives it (§5); `Cargo.lock` updates on build; the Homebrew formula and crates.io get it from the tag/publish. So a release edit = `Cargo.toml` version + a changelog entry, then tag.
+- Write changelog/commit/release text as neutral, third-person project documentation — what changed and why, for a stranger reading the repo.
+
+## 9. Demo GIF (VHS)
+
+Record a terminal demo with [VHS](https://github.com/charmbracelet/vhs) and embed it at the top of the README. Templates: [snippets/demo.tape](./snippets/demo.tape), [snippets/record.sh](./snippets/record.sh).
+
+- `demo/demo.tape` drives the app; `demo/record.sh` builds `--release`, exports the binary path as an env var the tape types (`$<CRATE>_BIN`), and runs `vhs` from `demo/`.
+- **VHS 0.11 quirk:** the tape needs a **bare** `Output <crate>.gif` (no directory path) — running vhs from `demo/` is what places it there.
+- Commit `demo/<crate>.gif`; embed it raw so it renders on crates.io and GitHub:
+  ```markdown
+  ![<crate> demo](https://raw.githubusercontent.com/<owner>/<crate>/main/demo/<crate>.gif)
+  ```
+- The release crate excludes `demo/` (§6) so the multi-MB gif never ships to crates.io.
+
+## 10. Shared CI hardening
+
+Everything in [supply-chain.md §5–6](./supply-chain.md) applies to **both** `ci.yml` and `release.yml`: **SHA-pin every action** (version in a trailing comment), **least-privilege `permissions`** (read-only floor, elevate per job), and **never inline `github.*` into `run:`** — pass via `env:`. Also set `persist-credentials: false` on any checkout that doesn't push.
 
 Rust-specific pinned actions (resolve a tag to its SHA with `gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`):
 
@@ -316,5 +356,8 @@ A copy-paste `release.yml` with the SHAs filled in lives in [snippets/rust-relea
 - [ ] `flake.nix` derives `pname`/`version`/metadata from `Cargo.toml`; `strictDeps`, `checks`, `formatter`; `flake.lock` committed
 - [ ] `Cargo.lock` committed; `cargo publish --locked`; deps pinned to a minor series
 - [ ] `rustls` TLS (no OpenSSL); `cargo audit` in CI
+- [ ] `ci.yml` runs fmt + clippy (`-D warnings`) + test + `cargo audit`, read-only permissions
+- [ ] `CHANGELOG.md` (Keep a Changelog + SemVer); version edited only in `Cargo.toml`
+- [ ] `demo/` VHS tape + `record.sh`; gif committed and embedded raw in the README; `demo/` excluded from the crate
 - [ ] All actions SHA-pinned with `# vX` comments; least-privilege `permissions`; `persist-credentials: false` where nothing pushes; tag passed via `env:`
 - [ ] A release is: bump `Cargo.toml` version + changelog → `git tag vX.Y.Z && git push --tags`
