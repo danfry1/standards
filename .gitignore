@@ -1,0 +1,11 @@
+# Local harness / editor state
+.claude/settings.local.json
+
+# Dependencies & build output
+node_modules/
+dist/
+*.tsbuildinfo
+
+# OS / logs
+.DS_Store
+*.log
