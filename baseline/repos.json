@@ -37,6 +37,9 @@
     "reflow-ts": {
       "tier": "package"
     },
+    "typed-css-imports": {
+      "tier": "package"
+    },
     "typediff": {
       "tier": "package",
       "exceptions": {
@@ -84,7 +87,10 @@
       "tier": "project"
     },
     "glaze-demo": {
-      "tier": "project"
+      "tier": "project",
+      "exceptions": {
+        "workflows.main-green": "The Deploy workflow fails by design: glaze-demo is a demo repository for GitHub Pulse, and the failing deploy is part of what it demonstrates."
+      }
     },
     "lume": {
       "tier": "project"

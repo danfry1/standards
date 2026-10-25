@@ -137,6 +137,13 @@
       "description": "No workflow is disabled (manually or for inactivity)."
     },
     {
+      "id": "workflows.main-green",
+      "tiers": "all",
+      "automated": true,
+      "doc": "github-actions.md#9-pr-ci-runs-everything-the-release-runs",
+      "description": "The latest completed run of every active workflow on the default branch succeeded. A job that passes on pull requests but fails on main (a push-only permission, a schedule) shows up here."
+    },
+    {
       "id": "workflows.frozen-installs",
       "tiers": "all",
       "automated": true,
