@@ -1,0 +1,274 @@
+{
+  "$comment": "The machine-readable baseline. Each check names the tiers it applies to and the standard it enforces. drift-check.mjs implements every check marked automated; the rest are reviewed by hand. Tiers are defined in repository.md, rule 1.",
+  "owner": "danfry1",
+  "contactDomains": [
+    "danfry.dev",
+    "users.noreply.github.com"
+  ],
+  "staleDependabotDays": 30,
+  "minimumReleaseAgeSeconds": 604800,
+  "tiers": [
+    "package",
+    "tool",
+    "distribution",
+    "meta",
+    "project"
+  ],
+  "checks": [
+    {
+      "id": "inventory.listed",
+      "tiers": "all",
+      "automated": true,
+      "doc": "repository.md#1-every-repository-has-a-tier",
+      "description": "Every public, non-archived, non-fork repository is listed in repos.json with a tier."
+    },
+    {
+      "id": "settings.private-vulnerability-reporting",
+      "tiers": "all",
+      "automated": true,
+      "doc": "repository.md#2-settings-every-public-repository-gets",
+      "description": "Private vulnerability reporting is enabled."
+    },
+    {
+      "id": "settings.dependabot-alerts",
+      "tiers": "all",
+      "automated": true,
+      "doc": "repository.md#2-settings-every-public-repository-gets",
+      "description": "Dependabot alerts are enabled."
+    },
+    {
+      "id": "settings.dependabot-security-updates",
+      "tiers": "all",
+      "automated": true,
+      "doc": "repository.md#2-settings-every-public-repository-gets",
+      "description": "Dependabot security updates are enabled."
+    },
+    {
+      "id": "settings.secret-scanning",
+      "tiers": "all",
+      "automated": true,
+      "doc": "repository.md#2-settings-every-public-repository-gets",
+      "description": "Secret scanning and push protection are enabled."
+    },
+    {
+      "id": "settings.workflow-token",
+      "tiers": "all",
+      "automated": true,
+      "doc": "repository.md#2-settings-every-public-repository-gets",
+      "description": "The default GITHUB_TOKEN is read-only and Actions cannot approve pull requests."
+    },
+    {
+      "id": "rulesets.no-classic-protection",
+      "tiers": "all",
+      "automated": true,
+      "doc": "repository.md#3-rulesets-on-main-and-on-release-tags",
+      "description": "The default branch uses rulesets, not classic branch protection."
+    },
+    {
+      "id": "rulesets.main-protected",
+      "tiers": "all",
+      "automated": true,
+      "doc": "repository.md#3-rulesets-on-main-and-on-release-tags",
+      "description": "An active ruleset on the default branch blocks deletion and force-push. Bypass actors are checked when the token can see them (GitHub shows them only to tokens with write access)."
+    },
+    {
+      "id": "rulesets.main-pr-required",
+      "tiers": [
+        "package",
+        "tool"
+      ],
+      "automated": true,
+      "doc": "repository.md#3-rulesets-on-main-and-on-release-tags",
+      "description": "The default branch requires a pull request and status checks; at least one is reported by the GitHub Actions app (integration 15368), and every required check is pinned to the app that reports it."
+    },
+    {
+      "id": "rulesets.release-tags-locked",
+      "tiers": [
+        "package",
+        "tool"
+      ],
+      "automated": true,
+      "doc": "repository.md#3-rulesets-on-main-and-on-release-tags",
+      "description": "An active tag ruleset covering refs/tags/v* (or ~ALL) blocks deletion, update and force-push. Bypass actors are checked when the token can see them."
+    },
+    {
+      "id": "files.security-policy",
+      "tiers": "all",
+      "automated": true,
+      "doc": "repository.md#6-a-security-policy-that-a-solo-maintainer-can-keep",
+      "description": "A SECURITY.md applies (the repository's own, or the .github default), and it names no address outside contactDomains."
+    },
+    {
+      "id": "files.dependabot",
+      "tiers": "all",
+      "automated": true,
+      "doc": "repository.md#5-dependabot-on-every-ecosystem-weekly-grouped-with-a-cooldown",
+      "description": "dependabot.yml covers every ecosystem present (bun for Bun projects, npm, cargo, gomod, pip/uv, github-actions) and every entry has cooldown default-days of at least 7."
+    },
+    {
+      "id": "files.releasing-doc",
+      "tiers": [
+        "package",
+        "tool"
+      ],
+      "automated": true,
+      "doc": "repository.md#7-document-how-the-repository-releases",
+      "description": "RELEASING.md exists."
+    },
+    {
+      "id": "files.release-age",
+      "tiers": "all",
+      "automated": true,
+      "doc": "supply-chain-security.md#2-put-a-cooldown-between-a-publish-and-your-install",
+      "description": "A repository with bun.lock has bunfig.toml with minimumReleaseAge of at least 7 days."
+    },
+    {
+      "id": "files.trusted-dependencies",
+      "tiers": "all",
+      "automated": true,
+      "doc": "supply-chain-security.md#6-default-deny-install-scripts",
+      "description": "A Bun project sets trustedDependencies explicitly (empty or a justified list) or ignoreScripts, so Bun's built-in allow-list does not run install scripts."
+    },
+    {
+      "id": "workflows.active",
+      "tiers": "all",
+      "automated": true,
+      "doc": "github-actions.md#14-keep-scheduled-workflows-alive",
+      "description": "No workflow is disabled (manually or for inactivity)."
+    },
+    {
+      "id": "workflows.frozen-installs",
+      "tiers": "all",
+      "automated": true,
+      "doc": "supply-chain-security.md#5-commit-the-lockfile-install-frozen-everywhere",
+      "description": "Every bun/pnpm install in a workflow uses --frozen-lockfile, and npm uses ci rather than install."
+    },
+    {
+      "id": "workflows.audit",
+      "tiers": [
+        "package",
+        "tool"
+      ],
+      "automated": true,
+      "doc": "supply-chain-security.md#8-audit-in-ci-as-its-own-job",
+      "description": "Some workflow audits dependencies (bun/pnpm/npm audit, cargo audit, rustsec/audit-check, cargo-deny, govulncheck). Whether it runs on pull requests as its own job is reviewed by hand."
+    },
+    {
+      "id": "workflows.zizmor",
+      "tiers": "all",
+      "automated": true,
+      "doc": "github-actions.md#11-scan-every-workflow-with-zizmor",
+      "description": "zizmor reports no unignored findings above informational (run with --zizmor)."
+    },
+    {
+      "id": "deps.dependabot-backlog",
+      "tiers": "all",
+      "automated": true,
+      "doc": "supply-chain-security.md#11-keep-the-update-backlog-empty",
+      "description": "No open Dependabot pull request is older than staleDependabotDays."
+    },
+    {
+      "id": "deps.open-alerts",
+      "tiers": "all",
+      "automated": true,
+      "doc": "supply-chain-security.md#8-audit-in-ci-as-its-own-job",
+      "description": "No open Dependabot alert of high or critical severity."
+    },
+    {
+      "id": "secrets.no-registry-tokens",
+      "tiers": "all",
+      "automated": true,
+      "doc": "releasing.md#2-keyless-publishing",
+      "description": "No repository, Dependabot or environment secret looks like a long-lived token (names matching NPM_TOKEN, NODE_AUTH_TOKEN, CARGO_REGISTRY_TOKEN, *_PAT, GH_PAT*, GH_TOKEN, *TAP_TOKEN*)."
+    },
+    {
+      "id": "releasing.isolated-publish",
+      "tiers": [
+        "package",
+        "tool"
+      ],
+      "automated": false,
+      "doc": "github-actions.md#7-split-build-from-publish",
+      "description": "The job holding id-token: write installs and tests nothing; it publishes an artifact built by an earlier job."
+    },
+    {
+      "id": "releasing.npm-disallow-tokens",
+      "tiers": [
+        "package"
+      ],
+      "automated": false,
+      "doc": "releasing.md#npm",
+      "description": "Each npm package requires 2FA and disallows tokens; its trusted publisher is configured."
+    },
+    {
+      "id": "releasing.crates-trusted-only",
+      "tiers": [
+        "package",
+        "tool"
+      ],
+      "automated": false,
+      "doc": "releasing.md#cratesio",
+      "description": "Each crate requires trusted publishing for all new versions."
+    },
+    {
+      "id": "deps.exact-pins",
+      "tiers": [
+        "package",
+        "tool"
+      ],
+      "automated": false,
+      "doc": "supply-chain-security.md#4-pin-exact-versions",
+      "description": "devDependencies (and an application's dependencies) are exact versions, enforced in CI (syncpack lint or equivalent)."
+    },
+    {
+      "id": "workflows.audit-job",
+      "tiers": [
+        "package",
+        "tool"
+      ],
+      "automated": false,
+      "doc": "supply-chain-security.md#8-audit-in-ci-as-its-own-job",
+      "description": "The audit runs on pull requests in its own job, at --audit-level=high."
+    },
+    {
+      "id": "releasing.tag-gate",
+      "tiers": [
+        "package",
+        "tool"
+      ],
+      "automated": false,
+      "doc": "github-actions.md#8-gate-releases-on-the-tag",
+      "description": "The release checks the tag matches the manifest version, the commit is on main, and skips versions already published."
+    },
+    {
+      "id": "releasing.attestations",
+      "tiers": [
+        "package",
+        "tool"
+      ],
+      "automated": false,
+      "doc": "releasing.md#binaries-on-github-releases",
+      "description": "Binary releases publish checksums and run an attest job that verifies against them."
+    },
+    {
+      "id": "releasing.homebrew",
+      "tiers": [
+        "package",
+        "tool"
+      ],
+      "automated": false,
+      "doc": "releasing.md#homebrew",
+      "description": "Formulae build from source, the tap CI is green, and no cask strips quarantine."
+    },
+    {
+      "id": "releasing.dist-tags",
+      "tiers": [
+        "package",
+        "tool"
+      ],
+      "automated": false,
+      "doc": "releasing.md#security-releases",
+      "description": "No npm dist-tag points at a version older than the latest patched release."
+    }
+  ]
+}

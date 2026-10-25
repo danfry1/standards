@@ -6,7 +6,7 @@ correct. The posture is constant: reach for the *narrowest type the compiler can
 prove*, and design types so a bug fails to compile rather than at runtime.
 
 Every rule is config-independent — each example compiles and stays strict under
-any reasonable `tsconfig`. The [Enforcement](#enforcement--compiler--lint-flags)
+any reasonable `tsconfig`. The [Enforcement](#enforcement-typescript-compiler-and-lint-flags)
 section lists the flags that mechanically lock the rules in on a project you own.
 
 Legend: ✅ preferred · ❌ avoid.
@@ -453,7 +453,7 @@ branch), and prefer returning a value over throwing for in-domain inputs (rule 2
 
 ---
 
-## Enforcement — compiler & lint flags
+## Enforcement: TypeScript compiler and lint flags
 
 The rules above hold under *any* config, but on a project you own the compiler
 should be the enforcer. `strict: true` is the baseline; these are the additional

@@ -321,7 +321,7 @@ mode has a deliberate outward representation.
 
 ---
 
-## Enforcement — compiler & lint flags
+## Enforcement: compiler and lint flags
 
 The rules hold under any config, but on a project you own these mechanically
 back them:

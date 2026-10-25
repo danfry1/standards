@@ -1,0 +1,39 @@
+name: CodeQL (reusable)
+
+# Reusable CodeQL analysis. Call it from a repo:
+#
+#   jobs:
+#     codeql:
+#       permissions: { security-events: write, contents: read }
+#       uses: danfry1/standards/.github/workflows/codeql.yml@<sha> # vX.Y.Z
+#
+# Pin the call by commit SHA (see ../../github-actions.md, rule 1); @v1
+# remains for existing callers.
+on:
+  workflow_call:
+    inputs:
+      languages:
+        description: Comma-separated CodeQL languages to analyze.
+        type: string
+        default: javascript-typescript
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          languages: ${{ inputs.languages }}
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
