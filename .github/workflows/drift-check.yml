@@ -22,6 +22,8 @@ permissions:
 jobs:
   drift:
     name: Drift check
+    # Skipped, not failed, until the GitHub App is configured (README).
+    if: vars.DRIFT_APP_CLIENT_ID != ''
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
