@@ -64,7 +64,12 @@ GH_TOKEN=$(gh auth token) node baseline/drift-check.mjs --repo bizdate --zizmor
 
 [`drift-check.yml`](.github/workflows/drift-check.yml) runs it every Monday and
 keeps one issue, **Standards drift report**, current; the issue closes itself
-when nothing has drifted.
+when nothing has drifted. Until the GitHub App below is configured, the
+scheduled run is skipped.
+
+[`ci.yml`](.github/workflows/ci.yml) checks this repository on every pull
+request: links and anchors between the standards, the baseline against the
+drift check (`baseline/self-check.mjs`), and zizmor on the workflows.
 
 **Adding a repository:** give it a tier in `repos.json`. A public repository
 missing from the file is itself reported.
@@ -157,13 +162,15 @@ standards/
 ├── baseline/
 │   ├── baseline.json          # the machine-checkable rules
 │   ├── repos.json             # every repository's tier and exceptions
-│   └── drift-check.mjs        # the checker
+│   ├── drift-check.mjs        # the checker
+│   └── self-check.mjs         # this repository's own links and consistency
 ├── skills/
 │   └── typescript-strict/
 └── .github/workflows/
     ├── codeql.yml             # reusable
     ├── scorecard.yml          # reusable
-    └── drift-check.yml        # weekly drift report
+    ├── drift-check.yml        # weekly drift report
+    └── ci.yml                 # checks this repository
 ```
 
 The website copy (<https://danfry.dev/standards.md> and
