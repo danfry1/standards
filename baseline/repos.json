@@ -1,0 +1,120 @@
+{
+  "$comment": "Every public repository, its tier (repository.md, rule 1), and any check it is excused from. An exception is a reason string, or {\"reason\": \"...\", \"until\": \"YYYY-MM-DD\"} to be revisited by that date. An exception without a reason, one past its date, or one whose check now passes is reported.",
+  "repos": {
+    "astrotime": {
+      "tier": "package"
+    },
+    "bizdate": {
+      "tier": "package"
+    },
+    "bonsai-js": {
+      "tier": "package"
+    },
+    "canonjson": {
+      "tier": "package"
+    },
+    "chunkjson": {
+      "tier": "package"
+    },
+    "faultline": {
+      "tier": "package",
+      "exceptions": {
+        "rulesets.no-classic-protection": "The release workflow is being reworked; rulesets replace classic protection once it lands.",
+        "rulesets.main-protected": "As above.",
+        "rulesets.main-pr-required": "As above.",
+        "rulesets.release-tags-locked": "As above; the reworked release must still be able to create v* and eslint-plugin-v* tags."
+      }
+    },
+    "jev-triage": {
+      "tier": "package"
+    },
+    "oxc-config": {
+      "tier": "package",
+      "exceptions": {
+        "rulesets.main-pr-required": "Not yet published to npm; becomes PR-only with its first release."
+      }
+    },
+    "reflow-ts": {
+      "tier": "package"
+    },
+    "typediff": {
+      "tier": "package",
+      "exceptions": {
+        "rulesets.main-pr-required": "Light ruleset until the release rework (the current release pushes a bundled-action commit).",
+        "rulesets.release-tags-locked": "The current release force-moves its v* tag onto the commit with the bundled action; locked once the release is reworked."
+      }
+    },
+    "vitest-native": {
+      "tier": "package",
+      "exceptions": {
+        "workflows.frozen-installs": "ecosystem-probe.yml deliberately installs current releases the way a consumer would, on a schedule, with a read-only token and no secrets; a lockfile would defeat its purpose."
+      }
+    },
+    "hacker-news-tui": {
+      "tier": "tool"
+    },
+    "marina": {
+      "tier": "tool"
+    },
+    "waxon": {
+      "tier": "tool"
+    },
+    "wordle-tui": {
+      "tier": "tool"
+    },
+    "homebrew-tap": {
+      "tier": "distribution"
+    },
+    "scoop-bucket": {
+      "tier": "distribution"
+    },
+    ".github": {
+      "tier": "meta"
+    },
+    "danfry1": {
+      "tier": "meta"
+    },
+    "standards": {
+      "tier": "meta"
+    },
+    "Advent-Of-Code-2022": {
+      "tier": "project"
+    },
+    "cellared-wine-data": {
+      "tier": "project"
+    },
+    "glaze-demo": {
+      "tier": "project"
+    },
+    "lume": {
+      "tier": "project"
+    },
+    "lume-zed-theme": {
+      "tier": "project"
+    },
+    "mind-the-gap": {
+      "tier": "project"
+    },
+    "minnit-chat": {
+      "tier": "project"
+    },
+    "rime": {
+      "tier": "project"
+    },
+    "theme-template": {
+      "tier": "project"
+    },
+    "ts-checker-bench": {
+      "tier": "project"
+    },
+    "typescript-tricks": {
+      "tier": "project",
+      "exceptions": {
+        "files.dependabot": "Dependabot covers GitHub Actions only by design: the README names the exact TypeScript versions each trick is verified against, so those must not move automatically."
+      }
+    },
+    "vitest-native-bakeoffs": {
+      "tier": "project"
+    }
+  }
+}

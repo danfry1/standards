@@ -1,0 +1,89 @@
+name: Drift check
+
+# Checks every public repository against baseline/baseline.json and keeps one
+# open issue, "Standards drift report", up to date with the result. The issue
+# closes itself when there is no drift.
+#
+# Reading other repositories' settings, rulesets, alerts and secret names needs
+# a GitHub App with read-only access to them (see the README, "The baseline and
+# the drift check"). GITHUB_TOKEN only writes the issue in this repository.
+#
+# GitHub disables scheduled workflows after 60 days without repository
+# activity, and this one cannot report its own disabling: if the issue stops
+# changing, check the workflow is still enabled.
+on:
+  schedule:
+    - cron: "0 7 * * 1" # Mondays, after the weekly Dependabot run
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    name: Drift check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.21.0
+          package-manager-cache: false
+
+      # zizmor runs through uvx at the version pinned in drift-check.mjs.
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: 0.13.1
+          enable-cache: false
+
+      # Every repository is in scope on purpose: the check reads all of them.
+      # The token is narrowed to exactly the read permissions the check uses.
+      - name: Mint a read-only token for every repository
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0 # zizmor: ignore[github-app]
+        with:
+          client-id: ${{ vars.DRIFT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DRIFT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-administration: read
+          permission-contents: read
+          permission-pull-requests: read
+          permission-vulnerability-alerts: read
+          permission-secrets: read
+          permission-dependabot-secrets: read
+          permission-environments: read
+          permission-actions: read
+          permission-metadata: read
+
+      - name: Check every repository
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: node baseline/drift-check.mjs --zizmor --json drift.json > report.md
+
+      - name: Update the drift issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          title="Standards drift report"
+          number=$(gh issue list --repo "$REPO" --state open --search "\"$title\" in:title" --json number,title \
+            --jq "map(select(.title == \"$title\")) | .[0].number // empty")
+          failing=$(node -e 'const r = require("./drift.json"); console.log(r.filter((x) => x.status === "fail" || x.status === "error").length)')
+          if [ "$failing" = 0 ]; then
+            if [ -n "$number" ]; then
+              gh issue comment "$number" --repo "$REPO" --body "No drift on $(date -u +%F). Closing."
+              gh issue close "$number" --repo "$REPO"
+            fi
+          elif [ -n "$number" ]; then
+            gh issue edit "$number" --repo "$REPO" --body-file report.md
+          else
+            gh issue create --repo "$REPO" --title "$title" --body-file report.md
+          fi
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
