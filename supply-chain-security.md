@@ -1,16 +1,24 @@
-# Supply-chain security standards (JS/TS — npm/pnpm)
+# Supply-chain security standards (dependencies - JS/TS, Rust, Go)
 
-A standard for defending the software supply chain: the dependencies pulled in,
-the CI that builds the code, and the packages published out. The threat model is
-concrete — a compromised transitive dependency, a malicious version pushed to a
-package you already trust, a hijacked GitHub Action, or a poisoned pull request
-reaching your secrets.
+A standard for the code you pull in: every direct and transitive dependency, the
+toolchain that installs it, and the bots that update it. The threat model is
+concrete - a malicious version pushed to a package you already trust, a
+typosquat or a name someone registered before you, a compromised maintainer, or
+an advisory that sits unpatched in your lockfile for months.
 
 The posture mirrors the rest of these standards: make the attack **impossible by
-construction**, not merely monitored. Default-deny, pin everything, grant least
-privilege, and put *time and verification* between an upstream compromise and
-your build. Most malicious package versions are caught and unpublished within
-hours to days — so a cooldown alone defeats a large class of attacks.
+construction**, not merely monitored. Pin everything, refuse anything too new,
+install exactly what was reviewed, and fail the build the moment a known
+advisory appears. Most malicious releases are found and pulled within days, so
+putting *time* between a publish and your install defeats a large class of
+attacks on its own.
+
+The rest of the supply chain has its own standard:
+
+- [GitHub Actions](github-actions.md) - the CI that builds and publishes.
+- [Releasing](releasing.md) - how artifacts leave the repo, with provenance.
+- [Repository](repository.md) - settings, rulesets, Dependabot, security policy.
+- [Maintainer accounts](accounts.md) - the humans and tokens behind it all.
 
 Legend: ✅ do · ❌ avoid.
 
@@ -20,202 +28,255 @@ Legend: ✅ do · ❌ avoid.
 
 ### 1. Minimize the dependency surface
 
-Every dependency — and every one of *its* dependencies — is code you ship and
-trust. Prefer the platform/stdlib, prefer a few well-audited libraries over many
-micro-packages, and delete unused deps. The cheapest supply-chain attack to
-survive is the one you never installed.
+Every dependency - and every one of *its* dependencies - is code you ship and
+trust. Prefer the platform and standard library, prefer one well-maintained
+library over several micro-packages, and delete what you no longer use. A
+library should aim for **zero runtime dependencies**; what it needs at build or
+test time stays in `devDependencies`.
 
-### 2. Enforce a minimum release age (cooldown)
-
-Never install a version the moment it publishes. Require it to have been public
-for a cooldown window (7–14 days) so malicious or broken releases are caught and
-unpublished before they reach your tree.
-
-```yaml
-# .npmrc (pnpm ≥ 10.16) — refuse versions younger than the window
-minimumReleaseAge=10080            # minutes = 7 days
-```
-
-Apply the same gate to automated updates — Renovate's `minimumReleaseAge` (and a
-matching `internalChecksFilter`) holds a PR open until the version has aged.
-Cooldown is the single highest-leverage control here.
-
-### 3. Vet a dependency before it enters the tree
-
-Adding a package is a security decision, not a convenience. Before it lands:
-check maintenance and provenance (repo, release history, maintainer count),
-whether it runs install scripts, its transitive footprint, and known advisories.
-Tools like Socket or `osv-scanner` automate the first pass — a human still
-approves the add.
-
-### 4. Pin exact versions — enforce with syncpack
-
-Ranges (`^`, `~`) let an attacker's freshly-published patch in without a code
-change. Pin exact versions everywhere and let the lockfile and `package.json`
-agree. In a monorepo, `syncpack` enforces both pinning and cross-workspace
-consistency in CI.
+When a feature needs a heavy package only some users want (a CLI that needs
+`typescript`, say), make it an **optional peer dependency** loaded lazily by
+that feature, so the core stays dependency-free.
 
 ```jsonc
-// .syncpackrc — pin everything; fail CI on a range or a mismatch
+// ✅ package.json - the CLI loads typescript on demand; the library never does
 {
-  "dependencyTypes": ["prod", "dev", "peer"],
-  "versionGroups": [{ "packages": ["**"], "preferVersion": "pin" }],
-  "semverGroups": [{ "packages": ["**"], "range": "" }]
+  "peerDependencies": { "typescript": ">=5" },
+  "peerDependenciesMeta": { "typescript": { "optional": true } }
 }
 ```
 
+### 2. Put a cooldown between a publish and your install
+
+Never take a version the moment it is published. Require it to have been public
+for **7 days**, in two layers:
+
+1. **Update bots** wait: Dependabot's `cooldown` holds the PR until the version
+   has aged (see [Repository](repository.md#5-dependabot-on-every-ecosystem-weekly-grouped-with-a-cooldown)).
+2. **The package manager** refuses young versions at install time, so a version
+   added or bumped by hand gets the same gate.
+
+```toml
+# ✅ bunfig.toml (Bun >= 1.3) - seconds; 604800 = 7 days
+[install]
+minimumReleaseAge = 604800
 ```
-syncpack lint        # CI: nonzero exit on any range or version mismatch
-```
-
-### 5. Commit the lockfile; install frozen
-
-The lockfile is the integrity boundary — it pins resolved versions *and* their
-SRI hashes. Commit it, review changes to it like code, and in CI install with the
-lockfile frozen so a drifted or tampered tree fails the build instead of silently
-resolving something new.
-
-```
-pnpm install --frozen-lockfile        # npm: `npm ci`
-```
-
-Never let CI write the lockfile. A diff to integrity hashes with no dependency
-change is a red flag, not a rebase artifact.
-
-### 6. Default-deny lifecycle scripts; allowlist the few that need them
-
-`postinstall`/`preinstall` scripts run arbitrary code on every machine that
-installs — a top malware delivery vector. Block them by default and allowlist
-only the packages that genuinely need a native build.
 
 ```yaml
-# .npmrc — npm: block all install scripts
+# ✅ pnpm-workspace.yaml (pnpm >= 10.16) - minutes; 10080 = 7 days
+minimumReleaseAge: 10080
+```
+
+Installs from a committed lockfile are unaffected; the gate applies when a
+version is resolved. Floating tags (`@latest`, `@next`) silently resolve to the
+newest version old enough, rather than failing.
+
+**Security fixes younger than the window.** When an advisory's fix is newer than
+7 days, exclude that one package temporarily and remove the exclusion once the
+fix has aged. Never lower the window for everything.
+
+```toml
+[install]
+minimumReleaseAge = 604800
+minimumReleaseAgeExcludes = ["undici"]   # ✅ temporary: GHSA-xxxx, fix published 2 days ago
+```
+
+### 3. Vet a dependency before it enters the tree
+
+Adding a package is a security decision. Before it lands, check:
+
+- **Who publishes it**: the registry's publisher field and provenance
+  (`npm view <pkg>@<version> _npmUser dist.attestations`). A release published
+  by CI with provenance is a stronger signal than a hand publish.
+- **How old it is**, how often it releases, and how many maintainers it has.
+- **Whether it runs install scripts**, and how many transitive packages it adds.
+- **Known advisories** (`bun audit`, `cargo audit`, `govulncheck`) before and
+  after adding it.
+
+### 4. Pin exact versions
+
+Ranges (`^`, `~`) let a freshly published patch in without a code change. Pin
+exact versions of everything you install for yourself - `devDependencies`, and
+every dependency of an application - and enforce it, so a stray `^` fails CI
+rather than quietly widening the tree.
+
+A **library's** `dependencies` and `peerDependencies` are the exception: they
+describe what *consumers* may use, and ranges let consumers deduplicate. Your
+own lockfile still pins exactly what your CI tests.
+
+```toml
+# ✅ bunfig.toml - `bun add` writes exact versions
+[install]
+exact = true
+```
+
+```jsonc
+// ✅ .syncpackrc.json - devDependencies exact; a library's runtime and peer ranges left alone
+{
+  "semverGroups": [
+    { "label": "Dev tooling is pinned exactly", "dependencyTypes": ["dev"], "range": "" },
+    { "label": "Runtime and peer ranges are for consumers", "dependencyTypes": ["prod", "peer"], "isIgnored": true }
+  ]
+}
+```
+
+An application (or a library with no runtime dependencies) can pin
+everything: drop the second group and add `"prod"` to the first. Run
+`syncpack lint` in CI. Rust and Go get the same guarantee from their lockfiles
+(`Cargo.lock`, `go.sum`) plus a locked build (rule 5).
+
+### 5. Commit the lockfile; install frozen everywhere
+
+The lockfile pins resolved versions *and* their integrity hashes. Commit it,
+review changes to it like code, and make every CI and release install refuse to
+change it.
+
+```bash
+# ✅ one per toolchain
+bun install --frozen-lockfile
+npm ci
+pnpm install --frozen-lockfile
+cargo build --locked              # and cargo package/publish --locked
+go build -mod=readonly ./...
+```
+
+A lockfile diff that changes integrity hashes without changing versions is a
+red flag, not a rebase artifact.
+
+### 6. Default-deny install scripts
+
+`preinstall`/`postinstall` scripts run arbitrary code on every machine that
+installs - a top malware delivery vector.
+
+- **Bun** runs install scripts for a built-in allow-list of popular packages
+  unless `package.json` says otherwise. A *missing* `trustedDependencies` field
+  means that list applies; set it explicitly, empty or with a justified list.
+  `ignoreScripts = true` under `[install]` in `bunfig.toml` turns off every
+  script instead.
+- **npm**: `ignore-scripts=true` in `.npmrc`.
+- **pnpm** default-denies; allow only what needs a native build, with
+  `onlyBuiltDependencies` (pnpm 10) or `allowBuilds` (pnpm 11).
+
+```jsonc
+// ✅ package.json (Bun) - no dependency runs an install script
+{ "trustedDependencies": [] }
+```
+
+```ini
+# ✅ .npmrc
 ignore-scripts=true
 ```
 
-pnpm 10 already default-denies build scripts; grant them explicitly:
+Any job that holds a publishing credential installs with scripts disabled, or
+installs nothing at all (see [GitHub Actions](github-actions.md#7-split-build-from-publish)).
+
+### 7. Own your names - kill dependency confusion and squatting
+
+An internal or announced-but-unpublished name can be taken by someone else.
+
+- **Scope** internal packages (`@org/...`) and pin the scope to its registry.
+- **Register a name before you announce it** - including the name your README
+  tells people to install. A `<project>-cli` package mentioned in docs but never
+  published is an open invitation.
+- Prefer shipping a CLI as a `bin` inside the main package (`npx <project>`) over a
+  second package name you then have to defend.
+
+### 8. Audit in CI, as its own job
+
+Fail the build on known advisories of **high or critical** severity, on every
+pull request and on `main`. Run the audit in its **own job** with no `needs:`,
+so a new advisory (or a registry outage) is reported on its own instead of
+skipping every other check.
 
 ```yaml
-# pnpm-workspace.yaml / package.json
-onlyBuiltDependencies:
-  - esbuild
-  - "@swc/core"
+# ✅ an independent job
+audit:
+  name: Audit dependencies
+  runs-on: ubuntu-latest
+  timeout-minutes: 10
+  steps:
+    - uses: actions/checkout@<sha> # vX.Y.Z
+      with:
+        persist-credentials: false
+    - uses: oven-sh/setup-bun@<sha> # vX.Y.Z
+      with:
+        bun-version: 1.3.14
+    - run: bun install --frozen-lockfile
+    - run: bun audit --audit-level=high
 ```
 
-Run CI installs with `--ignore-scripts` even so.
+Rust: `rustsec/audit-check` (or `cargo audit`/`cargo deny check advisories`).
+Go: `govulncheck ./...`. An ignored advisory names its ID, the reason, and the
+date the ignore should be revisited.
 
-### 7. Scope internal packages — kill dependency confusion
+### 9. Fix advisories in the smallest correct way
 
-An unscoped internal name (`utils`, `config`) can be hijacked by an attacker
-publishing the same name publicly at a higher version. Scope every internal
-package (`@org/…`), and pin that scope to the private registry so it can never
-resolve from the public one.
+In order of preference:
 
-```yaml
-# .npmrc
-@org:registry=https://registry.internal.example/
-//registry.internal.example/:_authToken=${NPM_TOKEN}
+1. **Lockfile-only, within range.** If the parent's declared range already
+   accepts the fixed version, update just that lock entry (with the registry's
+   integrity hash), prove it with a frozen install, and run the full quality job.
+   Every install is frozen, so the lockfile *is* what CI and releases use.
+2. **Bump the parent** when its range excludes the fix.
+3. **Override** (`overrides`/`resolutions`) only when no parent release accepts
+   the fix yet; comment it with the advisory ID and remove it when the parent
+   catches up.
+
+```bash
+# ❌ adds the transitive package to `dependencies` - wrong for a zero-dep library
+bun update undici
 ```
 
-Reserve your scope on the public registry too, so the name simply can't be taken.
+Majors that must move together move in **one** change. A coverage plugin that
+peers on an exact test-runner version breaks if either lands alone.
 
-### 8. Pin GitHub Actions to a full commit SHA, not a tag
+### 10. Check what actually runs, not what the lockfile says
 
-Tags are mutable: an attacker who moves `v4` (or compromises a popular action)
-gets code execution inside your CI with your secrets. Pin every `uses:` to a
-full 40-char commit SHA and let a bot bump it deliberately.
+Some packages ship their dependencies inside their own tarball, ignoring your
+lockfile entirely:
 
-```yaml
-# ✅ immutable
-- uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-# ❌ mutable — a moved tag is silent RCE (cf. the tj-actions/changed-files incident)
-- uses: actions/checkout@v4
+- **npm** bundles its dependencies. Its lock entries can look patched while the
+  installed npm still runs the old code; only upgrading npm itself fixes them.
+  Check `node_modules/npm/node_modules/<dep>/package.json`.
+- **A JavaScript GitHub Action** bundles its runtime into `dist/`. An advisory in
+  a runtime dependency ships to every workflow that uses the action until
+  `dist/` is rebuilt and released.
+
+When an audit says "fixed", confirm the version in the installed tree or the
+built artifact.
+
+### 11. Keep the update backlog empty
+
+Advisories accumulate in unmerged update PRs. Merge or close Dependabot's PRs
+every week; a backlog older than a month is a finding in its own right.
+Grouped minor/patch updates should be routine; majors get read (changelog, peer
+ranges, engine requirements) and merged on their own.
+
+### 12. Verify signatures and provenance on install
+
+Beyond the lockfile's hashes, verify registry signatures and provenance for the
+installed tree where the registry supports it.
+
+```bash
+npm audit signatures   # ✅ registry signatures + provenance attestations
 ```
 
-### 9. Least-privilege `GITHUB_TOKEN`
+A failed verification fails the build.
 
-Default the token to read-only and grant the minimum each job needs, at the job
-level. A token that can't write can't be turned against the repo.
+---
 
-```yaml
-permissions:
-  contents: read            # top-level default for the whole workflow
-# grant more only on the specific job that needs it, e.g. id-token: write to publish
-```
+## Enforcement
 
-### 10. Never run untrusted PR code with access to secrets
+| Control | Check | Automated |
+| --- | --- | --- |
+| Cooldown (bot) | `cooldown.default-days` of at least 7 on every Dependabot ecosystem | yes |
+| Cooldown (install) | `minimumReleaseAge` of at least 7 days in `bunfig.toml` | yes |
+| Install scripts | `trustedDependencies` set explicitly, or `ignoreScripts` | yes |
+| Frozen installs | every install in a workflow is frozen | yes |
+| Advisories | some workflow audits; no open high/critical Dependabot alert | yes |
+| Audit job | the audit runs on pull requests in its own job | by hand |
+| Backlog | no Dependabot PR older than 30 days | yes |
+| Exact pins | `syncpack lint` (or equivalent) in CI | by hand |
 
-`pull_request_target` runs in the *base* repo's context — with secrets and a
-write token — while the PR's code is untrusted. Checking out and building the PR
-head under that trigger hands a fork author your secrets. Don't.
-
-```yaml
-# ❌ the classic exfiltration footgun
-on: pull_request_target
-jobs:
-  build:
-    steps:
-      - uses: actions/checkout@<sha>
-        with: { ref: ${{ github.event.pull_request.head.sha }} }   # untrusted
-      - run: npm install && npm run build                          # with secrets in scope
-```
-
-Build untrusted PRs with the plain `pull_request` trigger (no secrets, read-only
-token). If a privileged step must follow, split it into a separate `workflow_run`
-job that never executes PR-authored code. Gate any deploy/publish behind a
-GitHub Environment with required reviewers.
-
-### 11. Harden the CI runner
-
-Treat the runner as hostile-adjacent: pin tool versions, set `persist-credentials:
-false` on checkout when the token isn't needed afterward, and add egress
-control (e.g. StepSecurity `harden-runner` in audit-then-block mode) so a
-compromised step can't quietly phone home or exfiltrate to an unknown host.
-
-### 12. Publish with provenance via OIDC — not a long-lived token
-
-Publish from CI using npm **trusted publishing** (OIDC), which mints a
-short-lived credential and attaches a Sigstore **provenance** attestation tying
-the artifact to the exact commit and workflow that built it. No `NPM_TOKEN`
-secret to steal, and consumers can verify where the package came from.
-
-```yaml
-permissions:
-  id-token: write           # required for OIDC + provenance
-# - run: npm publish --provenance --access public
-```
-
-If a token is unavoidable, use a granular, least-privilege automation token
-scoped to the one package, store it only as a CI secret, and rotate it.
-
-### 13. Stage every publish — soak on a dist-tag before `latest`
-
-Publishing straight to `latest` makes every consumer an instant blast radius.
-Publish to a pre-release tag first, let it bake (and run smoke tests / canary
-installs), then promote the *same* immutable version to `latest`.
-
-```
-npm publish --tag next                       # nobody on `latest` is affected yet
-# …soak, verify provenance, smoke-test…
-npm dist-tag add @org/pkg@1.4.0 latest       # promote, no rebuild
-```
-
-### 14. Require 2FA and protect the human side
-
-Enforce 2FA for every maintainer and for publish on the registry. Keep the
-maintainer list small and reviewed, and remove access promptly when it's no
-longer needed. The strongest pipeline still falls to a phished maintainer
-account.
-
-### 15. Scan continuously and keep an SBOM
-
-Run advisory scanning in CI (`osv-scanner`, `npm audit`, Socket, Dependabot
-alerts) and generate an SBOM (CycloneDX or SPDX) on every release so you can
-answer "are we affected?" in minutes when the next advisory drops. Scanning is
-detection, not prevention — it backs the rules above; it does not replace them.
-
-### 16. Verify integrity and attestations on install
-
-Beyond the lockfile's SRI hashes, verify signatures/attestations where the
-registry supports them (`npm audit signatures` checks registry signatures and
-provenance for the installed tree). A failed verification fails the build.
+The automated rows are checked across every repository weekly by the
+[drift check](https://github.com/danfry1/standards#the-baseline-and-the-drift-check).
