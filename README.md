@@ -1,123 +1,110 @@
-# standards
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
+    <img src="assets/logo-light.svg" alt="A spirit level with its bubble centred" width="240">
+  </picture>
+</p>
 
-My engineering standards - the patterns I hold code, repositories and releases
-to, written down precisely enough to be enforceable. The throughline is the same
-everywhere: **make the bad state impossible rather than merely caught**. In
-types, that means the compiler proves correctness; in tests, every test pins
-real behavior and can actually fail; in the supply chain, a compromised
-dependency, action or token has nothing to grab.
+<h1 align="center">standards</h1>
 
-Every standard is a self-contained, example-driven document. The ones that can
-be checked by a machine are, every week, across every repository (see
-[the baseline and the drift check](#the-baseline-and-the-drift-check)).
+<p align="center">
+  The rules I hold code, CI, repositories and releases to — written down precisely enough to enforce, and checked every week.
+</p>
 
-## Standards
+<p align="center">
+  <a href="https://github.com/danfry1/standards/actions/workflows/ci.yml"><img src="https://github.com/danfry1/standards/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+</p>
+
+One idea runs through all of it: **make the bad state impossible rather than
+merely caught.** In types, the compiler proves the code correct. In tests,
+every test pins real behavior and can actually fail. In the supply chain, a
+compromised dependency, action or token finds nothing to grab.
+
+Each standard is a short, self-contained document of numbered rules with
+examples of what to do and what to avoid. The ones a machine can check are
+checked across every repository by the [drift check](#the-drift-check).
+
+## The standards
 
 **Code**
 
 | Standard | What it covers |
 | --- | --- |
-| [**TypeScript**](typescript.md) | 27 rules for maximum, config-independent type strictness - discriminated unions, branded primitives, precise generics, `unknown` boundaries, `Result` over throwing; no `any`/`enum`/unchecked `as`. Each rule maps to the `tsconfig`/lint flag that locks it in. |
-| [**Error handling**](error-handling.md) | 14 rules so no error is ever opaque - typed custom errors with a literal discriminant, structured context, preserved `cause`, narrow-don't-cast in `catch`, and one exhaustive top-level handler. |
-| [**Testing**](testing.md) | 19 rules for tests that catch regressions instead of granting *fake safety* - exact assertions over truthiness, specific errors, determinism, isolation, behavior over implementation. For Vitest & Jest. |
+| [TypeScript](typescript.md) | 27 rules for config-independent type strictness: discriminated unions, branded primitives, precise generics, `unknown` at boundaries, `Result` over throwing, and no `any`, `enum` or unchecked `as`. |
+| [Error handling](error-handling.md) | 14 rules so no error is ever opaque: typed errors with a literal discriminant, structured context, a preserved `cause`, narrowing instead of casting in `catch`, and one top-level handler. |
+| [Testing](testing.md) | 19 rules for tests that catch regressions rather than granting false confidence: exact assertions, specific errors, determinism, isolation, and behavior over implementation. |
 
 **Supply chain and operations**
 
 | Standard | What it covers |
 | --- | --- |
-| [**Supply-chain security**](supply-chain-security.md) | 12 rules for the code you pull in - zero runtime dependencies, a 7-day cooldown at update *and* install time, exact pins, frozen installs, default-deny install scripts, owning your names, an audit gate, and checking what actually runs. |
-| [**GitHub Actions**](github-actions.md) | 15 rules for CI that can't be turned against you - SHA pins verified against the action's repo, read-only tokens, no persisted credentials, no template injection, no release caches, an isolated publish job, and zizmor on every workflow. |
-| [**Repository**](repository.md) | 8 rules for how a repository is configured - tiers, security settings, rulesets on `main` and release tags, documented exceptions, Dependabot with a cooldown, and a security policy a solo maintainer can keep. |
-| [**Releasing**](releasing.md) | Principles and per-channel rules for npm (staged, OIDC, 2FA-approved), crates.io (trusted-only), binaries (checksums + attestations), Homebrew (source formulae + bottles behind a manual gate), Scoop, GitHub Actions, and security releases. |
-| [**Maintainer accounts**](accounts.md) | 7 rules for the humans behind it - passkeys, offline recovery codes, the recovery inbox as master key, no standing credentials, no PATs, and a contact address on a domain you own. |
+| [Supply-chain security](supply-chain-security.md) | 12 rules for the code you pull in: a 7-day cooldown at update and install time, exact pins, frozen installs, default-deny install scripts, owning your package names, an audit gate, and checking what actually runs. |
+| [GitHub Actions](github-actions.md) | 15 rules for CI that can't be turned against you: verified SHA pins, read-only tokens, no persisted credentials, no script injection, no release caches, an isolated publish job, and zizmor on every workflow. |
+| [Repository](repository.md) | 8 rules for how a repository is configured: tiers, security settings, rulesets on `main` and release tags, written-down exceptions, Dependabot, and a security policy a solo maintainer can keep. |
+| [Releasing](releasing.md) | How releases ship on every channel — npm, crates.io, binaries, Homebrew, Scoop and GitHub Actions — keyless, traceable and approved by a human, plus how to handle a security release. |
+| [Maintainer accounts](accounts.md) | 7 rules for the people behind it: passkeys, offline recovery codes, the recovery inbox as master key, no standing credentials, no personal access tokens, and a contact address on your own domain. |
 
-All of it, in one page for coding agents: **<https://danfry.dev/standards.md>**.
+Everything on one page, for reading in one go or handing to an agent:
+**<https://danfry.dev/standards.md>**
 
-## For coding agents
+## Using them
 
-Treat every rule as mandatory for the code, configuration and workflows you
-write or review, wherever the rule's language or tooling applies. Examples mark
-the required pattern with ✅ (`good:` on the website) and the anti-pattern with
-❌ (`bad:`).
+**Reading.** Start with the standard closest to what you're doing; each one
+stands alone. ✅ marks the pattern to follow, ❌ the one to avoid.
 
-Some steps cannot be done from a terminal - registering a trusted publisher,
-creating a GitHub App, approving a staged npm publish. Give the human exact
-instructions and wait; never substitute a long-lived token to get around them.
+**With a coding agent.** Point it at <https://danfry.dev/standards.md> (where the
+markers are written as `good:` and `bad:`) and treat every rule as mandatory
+for the code, configuration and workflows it writes or reviews. Some steps can
+only be done by a person in a browser — registering a trusted publisher,
+creating a GitHub App, approving a staged npm publish. The agent should give
+exact instructions and wait, never fall back on a long-lived token.
 
-## The baseline and the drift check
-
-Settings drift silently, so the rules that can be checked by a machine are:
-
-- [`baseline/baseline.json`](baseline/baseline.json) - every check, which
-  repository tiers it applies to, and the rule it enforces.
-- [`baseline/repos.json`](baseline/repos.json) - every public repository, its
-  tier, and any check it is excused from, with the reason.
-- [`baseline/drift-check.mjs`](baseline/drift-check.mjs) - checks every public
-  repository against both and prints a report. Zero dependencies; Node 22+.
-
-Run it locally (read-only):
+**As a skill.** [`typescript-strict`](skills/typescript-strict/SKILL.md) packages
+the TypeScript standard as an [Agent Skill](https://agentskills.io/specification)
+that writes strict TypeScript and reviews a repository for type holes with a
+zero-dependency scanner. For Claude Code:
 
 ```bash
-GH_TOKEN=$(gh auth token) node baseline/drift-check.mjs            # every repository
+ln -s "$(pwd)/skills/typescript-strict" ~/.claude/skills/typescript-strict
+```
+
+OpenCode reads `.claude/skills/`, `.opencode/skills/` and `.agents/skills/`;
+other agents can load the `SKILL.md` and its `references/` directly.
+
+## The drift check
+
+Repository settings can't be inherited on a personal account, so they drift
+quietly: a new repository never gets its security settings, an update PR sits
+for months, a scheduled workflow switches itself off. The drift check catches
+that.
+
+[`baseline/drift-check.mjs`](baseline/drift-check.mjs) reads every public
+repository and compares it with the rules for its tier:
+
+- [`baseline/baseline.json`](baseline/baseline.json) — every check, the tiers it
+  applies to, and the rule it enforces.
+- [`baseline/repos.json`](baseline/repos.json) — every repository's tier, and
+  any check it's excused from, with the reason.
+
+It only reads, needs nothing but Node 22, and takes about half a minute:
+
+```bash
+GH_TOKEN=$(gh auth token) node baseline/drift-check.mjs                  # every repository
 GH_TOKEN=$(gh auth token) node baseline/drift-check.mjs --repo bizdate --zizmor
 ```
 
-[`drift-check.yml`](.github/workflows/drift-check.yml) runs it every Monday and
-keeps one issue, **Standards drift report**, current; the issue closes itself
-when nothing has drifted. Until the GitHub App below is configured, the
-scheduled run is skipped.
-
-[`ci.yml`](.github/workflows/ci.yml) checks this repository on every pull
-request: links and anchors between the standards, the baseline against the
-drift check (`baseline/self-check.mjs`), and zizmor on the workflows.
-
-**Adding a repository:** give it a tier in `repos.json`. A public repository
-missing from the file is itself reported.
-
-**Excusing a check:** add it to the repository's `exceptions` with the reason.
-An exception without a reason is reported as a failure.
-
-**One-time setup for the scheduled run** (browser only). Create a GitHub App
-(Settings -> Developer settings -> GitHub Apps -> New), with webhooks off and
-these **read-only** repository permissions:
-
-| Permission | Why |
-| --- | --- |
-| Administration | settings, rulesets, branch protection, vulnerability reporting |
-| Contents | files such as `SECURITY.md`, `dependabot.yml`, workflows |
-| Pull requests | the Dependabot backlog |
-| Dependabot alerts | open high/critical alerts |
-| Secrets | repository secret *names* (never values) |
-| Dependabot secrets | Dependabot secret names |
-| Environments | environment secret names |
-| Actions | disabled workflows |
-| Metadata | required by GitHub |
-
-Install it on all repositories, then store its client ID and key here:
-
-```bash
-gh variable set DRIFT_APP_CLIENT_ID --repo danfry1/standards --body "<client-id>"
-gh secret set DRIFT_APP_PRIVATE_KEY --repo danfry1/standards < drift.private-key.pem
-rm drift.private-key.pem
-```
-
-A read-only token cannot see rulesets' bypass actors (GitHub shows them only
-to tokens with write access), so the scheduled run checks rules but not
-bypasses; a local run with your own token checks both.
-
-GitHub disables scheduled workflows after 60 days without repository
-activity, and the drift check cannot report its own disabling. If the issue
-stops changing, check the workflow is still enabled.
+Run weekly by [`drift-check.yml`](.github/workflows/drift-check.yml), it keeps
+a single **Standards drift report** issue up to date, and closes it when
+nothing has drifted.
 
 ## Reusable workflows
 
 | Workflow | What it does |
 | --- | --- |
 | [`codeql.yml`](.github/workflows/codeql.yml) | CodeQL analysis (`languages` input, default `javascript-typescript`) |
-| [`scorecard.yml`](.github/workflows/scorecard.yml) | OpenSSF Scorecard, results to code scanning (`publish_results` input) |
+| [`scorecard.yml`](.github/workflows/scorecard.yml) | OpenSSF Scorecard, with results sent to code scanning (`publish_results` input) |
 
-Call them pinned by commit SHA, like any action. Releases of this repository
-are tagged (`v2` onwards) so Dependabot can keep callers' pins current:
+Pin them by commit SHA, like any action:
 
 ```yaml
 jobs:
@@ -128,55 +115,61 @@ jobs:
     uses: danfry1/standards/.github/workflows/codeql.yml@<sha> # vX.Y.Z
 ```
 
-The `v1` tag stays where it is for existing callers.
+The `v1` tag is kept for existing callers.
 
-## Skills
+## Maintaining this repository
 
-| Skill | What it does |
+<details>
+<summary>Adding repositories, excusing checks, CI, and setting up the weekly run</summary>
+
+**Adding a repository.** Give it a tier in `repos.json`. A public repository
+missing from the file is reported.
+
+**Excusing a check.** Add the check to the repository's `exceptions` with a
+reason, optionally as `{ "reason": "...", "until": "YYYY-MM-DD" }`. An exception
+without a reason, past its date, or no longer needed is reported.
+
+**CI.** [`ci.yml`](.github/workflows/ci.yml) runs on every pull request: links
+and anchors between the standards, the baseline against the drift check
+([`baseline/self-check.mjs`](baseline/self-check.mjs)), and zizmor on the
+workflows.
+
+**The website.** <https://danfry.dev/standards.md> and `/standards/<topic>.md`
+are generated from this repository, which stays the source of truth.
+
+**Setting up the weekly run** (browser only, once). Until this is done, the
+scheduled run is skipped. Create a GitHub App (Settings → Developer settings →
+GitHub Apps → New) with webhooks off and these read-only repository
+permissions:
+
+| Permission | Used for |
 | --- | --- |
-| [`typescript-strict`](skills/typescript-strict/SKILL.md) | The TypeScript standard as a working [Agent Skill](https://agentskills.io/specification). **Authors** robust, config-independent TS and **reviews** any repo for type holes and strictness gaps via a zero-dep scanner, calibrated to the repo's config. Strict `tsconfig` and lint configs ship as **optional** enforcement. |
+| Administration | settings, rulesets, branch protection, vulnerability reporting |
+| Contents | files such as `SECURITY.md`, `dependabot.yml` and workflows |
+| Pull requests | the Dependabot backlog |
+| Dependabot alerts | open high and critical alerts |
+| Secrets, Dependabot secrets, Environments | secret *names*, never values |
+| Actions | disabled workflows |
+| Metadata | required by GitHub |
 
-**Claude Code** - symlink (or copy) a skill into a project's or your user skills
-directory:
+Install it on all repositories, then store its client ID and private key:
 
 ```bash
-ln -s "$(pwd)/skills/typescript-strict" ~/.claude/skills/typescript-strict
+gh variable set DRIFT_APP_CLIENT_ID --repo danfry1/standards --body "<client-id>"
+gh secret set DRIFT_APP_PRIVATE_KEY --repo danfry1/standards < drift.private-key.pem
+rm drift.private-key.pem
 ```
 
-**OpenCode** reads `.claude/skills/`, `.opencode/skills/` and `.agents/skills/`;
-**Codex and other agents** can reference the `SKILL.md` and its `references/`
-from wherever they load instructions.
+Two limits worth knowing:
 
-## Layout
+- A read-only token can't see rulesets' bypass actors, so the weekly run checks
+  rules but not bypasses. A local run with your own token checks both.
+- GitHub disables scheduled workflows after 60 days without activity, and the
+  drift check can't report its own disabling. If the issue stops changing,
+  check the workflow is still enabled.
 
-```
-standards/
-├── typescript.md              # code
-├── error-handling.md
-├── testing.md
-├── supply-chain-security.md   # supply chain and operations
-├── github-actions.md
-├── repository.md
-├── releasing.md
-├── accounts.md
-├── baseline/
-│   ├── baseline.json          # the machine-checkable rules
-│   ├── repos.json             # every repository's tier and exceptions
-│   ├── drift-check.mjs        # the checker
-│   └── self-check.mjs         # this repository's own links and consistency
-├── skills/
-│   └── typescript-strict/
-└── .github/workflows/
-    ├── codeql.yml             # reusable
-    ├── scorecard.yml          # reusable
-    ├── drift-check.yml        # weekly drift report
-    └── ci.yml                 # checks this repository
-```
-
-The website copy (<https://danfry.dev/standards.md> and
-`/standards/<topic>.md`) is generated from this repository; this repository is
-the source of truth.
+</details>
 
 ## License
 
-MIT - see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
