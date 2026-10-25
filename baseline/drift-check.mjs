@@ -360,6 +360,25 @@ const CHECKS = {
     return off.length === 0 ? pass() : fail(`disabled: ${off.join(', ')}`);
   },
 
+  async 'workflows.main-green'({ repo, meta }) {
+    const workflows = (await paginate(`/repos/${OWNER}/${repo}/actions/workflows`)).filter(
+      // Dynamic workflows (Dependabot, Pages builds) are GitHub's, not ours.
+      (w) => w.state === 'active' && !w.path.startsWith('dynamic/'),
+    );
+    const { body } = await api(
+      `/repos/${OWNER}/${repo}/actions/runs?branch=${encodeURIComponent(meta.default_branch)}&exclude_pull_requests=true&per_page=100`,
+    );
+    const ignored = new Set(['skipped', 'cancelled', 'neutral', 'stale']);
+    const red = [];
+    for (const workflow of workflows) {
+      const latest = (body.workflow_runs ?? []).find(
+        (r) => r.workflow_id === workflow.id && r.status === 'completed' && !ignored.has(r.conclusion),
+      );
+      if (latest && latest.conclusion !== 'success') red.push(`${workflow.name} (${latest.conclusion} ${latest.created_at.slice(0, 10)})`);
+    }
+    return red.length === 0 ? pass() : fail(`latest run on ${meta.default_branch} not green: ${red.join(', ')}`);
+  },
+
   async 'workflows.frozen-installs'(ctx) {
     const problems = [];
     for (const { path, text } of await ctx.workflows()) {
