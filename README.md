@@ -79,7 +79,7 @@ quietly: a new repository never gets its security settings, an update PR sits
 for months, a scheduled workflow switches itself off. The drift check catches
 that.
 
-[`baseline/drift-check.mjs`](baseline/drift-check.mjs) reads every public
+[`baseline/drift-check.ts`](baseline/drift-check.ts) reads every public
 repository and compares it with the rules for its tier:
 
 - [`baseline/baseline.json`](baseline/baseline.json) — every check, the tiers it
@@ -87,11 +87,11 @@ repository and compares it with the rules for its tier:
 - [`baseline/repos.json`](baseline/repos.json) — every repository's tier, and
   any check it's excused from, with the reason.
 
-It only reads, needs nothing but Node 22, and takes about half a minute:
+It only reads, needs nothing but Node 24 (which runs TypeScript directly), and takes about half a minute:
 
 ```bash
-GH_TOKEN=$(gh auth token) node baseline/drift-check.mjs                  # every repository
-GH_TOKEN=$(gh auth token) node baseline/drift-check.mjs --repo bizdate --zizmor
+GH_TOKEN=$(gh auth token) node baseline/drift-check.ts                  # every repository
+GH_TOKEN=$(gh auth token) node baseline/drift-check.ts --repo bizdate --zizmor
 ```
 
 Run weekly by [`drift-check.yml`](.github/workflows/drift-check.yml), it keeps
@@ -132,8 +132,11 @@ without a reason, past its date, or no longer needed is reported.
 
 **CI.** [`ci.yml`](.github/workflows/ci.yml) runs on every pull request: links
 and anchors between the standards, the baseline against the drift check
-([`baseline/self-check.mjs`](baseline/self-check.mjs)), and zizmor on the
-workflows.
+([`baseline/self-check.ts`](baseline/self-check.ts)), a typecheck of the
+scripts under the strict config in
+[`skills/typescript-strict`](skills/typescript-strict/SKILL.md), a dependency
+audit, and zizmor on the workflows. The scripts have no runtime dependencies;
+TypeScript and the Node types are dev dependencies for the typecheck.
 
 **The website.** <https://danfry.dev/standards.md> and `/standards/<topic>.md`
 are generated from this repository, which stays the source of truth.

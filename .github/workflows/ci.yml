@@ -2,7 +2,7 @@ name: CI
 
 # Checks the repository against itself: links and anchors between the
 # standards, the baseline's consistency with the drift check, the scripts'
-# syntax, and zizmor on every workflow here.
+# types, a dependency audit, and zizmor on every workflow here.
 on:
   push:
     branches: [main]
@@ -26,14 +26,36 @@ jobs:
           node-version: 24.21.0
           package-manager-cache: false
 
-      - name: Script syntax
-        run: |
-          node --check baseline/drift-check.mjs
-          node --check baseline/self-check.mjs
-          node --check skills/typescript-strict/scripts/scan-escape-hatches.mjs
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.4
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      # The scripts run directly on Node; tsc checks them against the strict
+      # config this repository ships.
+      - name: Typecheck
+        run: bun run typecheck
 
       - name: Links, anchors and baseline consistency
-        run: node baseline/self-check.mjs
+        run: node baseline/self-check.ts
+
+  audit:
+    name: Audit dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.4
+
+      - run: bun install --frozen-lockfile
+      - run: bun audit --audit-level=high
 
   zizmor:
     name: zizmor

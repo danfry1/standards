@@ -1,0 +1,11 @@
+{
+  // Type-checks the repository's own scripts under the strict config it ships.
+  "extends": "./skills/typescript-strict/references/tsconfig.strict.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "target": "es2024",
+    "lib": ["es2024"],
+    "types": ["node"]
+  },
+  "include": ["baseline/**/*.ts", "skills/**/*.ts"]
+}

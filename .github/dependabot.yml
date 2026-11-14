@@ -1,4 +1,5 @@
-# Keeps the SHA-pinned actions in the reusable and drift-check workflows current.
+# Keeps the SHA-pinned actions and the dev dependencies (TypeScript, Node types)
+# current.
 # Updates wait 7 days after a release (cooldown), so a bad or hijacked version
 # has time to be pulled before it is proposed here.
 version: 2
@@ -13,4 +14,16 @@ updates:
       default-days: 7
     groups:
       github-actions:
+        patterns: ["*"]
+
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    groups:
+      dev-dependencies:
         patterns: ["*"]

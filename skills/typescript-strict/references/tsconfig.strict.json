@@ -22,6 +22,12 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "verbatimModuleSyntax": true,
+    // Import siblings by their real `.ts` name; tsc rewrites to `.js` on emit,
+    // and Node, Bun and Deno run the `.ts` file directly.
+    "rewriteRelativeImportExtensions": true,
+    // Only syntax a type-stripper can erase: no `enum`, `namespace` or
+    // parameter properties, so Node can run the source with no build step.
+    "erasableSyntaxOnly": true,
     "isolatedModules": true,
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,

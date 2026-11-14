@@ -265,8 +265,10 @@ this order.
 Run the bundled scanner for a fast, deterministic first pass:
 
 ```
-node scripts/scan-escape-hatches.mjs <dir>     # add --json for machine output
+node scripts/scan-escape-hatches.ts <dir>     # add --json for machine output
 ```
+
+Node 24+, Bun and Deno all run the `.ts` file directly; there is no build step.
 
 It lists `file:line` hits for `any`, non-`const` `as`, `enum`, `JSON.parse`,
 `@ts-ignore`/`@ts-expect-error`, and loose `Record<string, …>`. It is a
