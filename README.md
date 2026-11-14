@@ -34,6 +34,12 @@ checked across every repository by the [drift check](#the-drift-check).
 | [Error handling](error-handling.md) | 14 rules so no error is ever opaque: typed errors with a literal discriminant, structured context, a preserved `cause`, narrowing instead of casting in `catch`, and one top-level handler. |
 | [Testing](testing.md) | 19 rules for tests that catch regressions rather than granting false confidence: exact assertions, specific errors, determinism, isolation, and behavior over implementation. |
 
+**Working with agents**
+
+| Standard | What it covers |
+| --- | --- |
+| [Agent workflow](agents.md) | 15 rules for running coding agents, one or many: an issue as the spec and a PR as the only output, knowledge kept in `AGENTS.md` instead of sessions, a mode chosen by the shape of the work, parallelism by file ownership, short-lived workers in fixed lanes, reports pushed not polled, review before any human sees it, and cleanup as part of done. |
+
 **Supply chain and operations**
 
 | Standard | What it covers |
