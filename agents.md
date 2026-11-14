@@ -182,7 +182,7 @@ The report types are `PR opened`, `PR updated`, `QUESTION`, `BLOCKED` and
 `FOLLOW-UP`. A worker stuck on a permission prompt can't report. The terminal
 shows that it's waiting, and a human answers it.
 
-### 9. Workers stay inside the brief
+### 9. Workers stay inside the brief, and build only what it needs
 
 Anything outside the owned files gets a `QUESTION` before work begins. That
 includes another file, a new dependency, a structural refactor, or a lint rule
@@ -190,6 +190,24 @@ that would force a redesign. Improvements noticed along the way become a
 `FOLLOW-UP`, not part of the current diff. An unrequested change in a pull
 request is a review failure even when it's an improvement, because nobody
 agreed to it.
+
+The same goes for what a worker builds inside the brief. Every new file,
+script, option, abstraction or dependency needs a reason that holds today,
+not one that might hold later. Agents add structure cheaply: a helper script
+next to the one test that uses it, a wrapper with one caller, a CLI flag
+nothing runs. Each one is code a person must read and keep working. Logic
+with one user lives with that user. A script gets its own file only when CI
+or a documented command runs it. Prefer a few deep modules with small, typed
+contracts over many thin ones.
+
+```text bad
+scripts/lanes.mjs      # glob matching, plus a --pr labelling mode nothing calls
+tests/lanes.test.ts    # its only importer, through a ts-expect-error
+```
+
+```text good
+tests/lanes.test.ts    # the 15 lines of matching it needs, typed, in place
+```
 
 ### 10. Product decisions belong to the human
 
