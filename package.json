@@ -1,0 +1,14 @@
+{
+  "name": "standards",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "check": "node baseline/self-check.ts"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
+  },
+  "trustedDependencies": []
+}

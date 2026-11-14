@@ -1,5 +1,5 @@
 {
-  "$comment": "The machine-readable baseline. Each check names the tiers it applies to and the standard it enforces. drift-check.mjs implements every check marked automated; the rest are reviewed by hand. Tiers are defined in repository.md, rule 1.",
+  "$comment": "The machine-readable baseline. Each check names the tiers it applies to and the standard it enforces. drift-check.ts implements every check marked automated; the rest are reviewed by hand. Tiers are defined in repository.md, rule 1.",
   "owner": "danfry1",
   "contactDomains": [
     "danfry.dev",

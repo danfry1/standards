@@ -30,6 +30,7 @@ checked across every repository by the [drift check](#the-drift-check).
 
 | Standard | What it covers |
 | --- | --- |
+| [Module design](design.md) | 13 rules for code you can audit at its boundaries: deep modules, typed contracts that show every failure, dependencies passed in, no hidden channels, each module tested in isolation with fakes proven against the real thing, and contract changes visible in review. |
 | [TypeScript](typescript.md) | 27 rules for config-independent type strictness: discriminated unions, branded primitives, precise generics, `unknown` at boundaries, `Result` over throwing, and no `any`, `enum` or unchecked `as`. |
 | [Error handling](error-handling.md) | 14 rules so no error is ever opaque: typed errors with a literal discriminant, structured context, a preserved `cause`, narrowing instead of casting in `catch`, and one top-level handler. |
 | [Testing](testing.md) | 19 rules for tests that catch regressions rather than granting false confidence: exact assertions, specific errors, determinism, isolation, and behavior over implementation. |
@@ -78,7 +79,7 @@ quietly: a new repository never gets its security settings, an update PR sits
 for months, a scheduled workflow switches itself off. The drift check catches
 that.
 
-[`baseline/drift-check.mjs`](baseline/drift-check.mjs) reads every public
+[`baseline/drift-check.ts`](baseline/drift-check.ts) reads every public
 repository and compares it with the rules for its tier:
 
 - [`baseline/baseline.json`](baseline/baseline.json) — every check, the tiers it
@@ -86,11 +87,11 @@ repository and compares it with the rules for its tier:
 - [`baseline/repos.json`](baseline/repos.json) — every repository's tier, and
   any check it's excused from, with the reason.
 
-It only reads, needs nothing but Node 22, and takes about half a minute:
+It only reads, needs nothing but Node 24 (which runs TypeScript directly), and takes about half a minute:
 
 ```bash
-GH_TOKEN=$(gh auth token) node baseline/drift-check.mjs                  # every repository
-GH_TOKEN=$(gh auth token) node baseline/drift-check.mjs --repo bizdate --zizmor
+GH_TOKEN=$(gh auth token) node baseline/drift-check.ts                  # every repository
+GH_TOKEN=$(gh auth token) node baseline/drift-check.ts --repo bizdate --zizmor
 ```
 
 Run weekly by [`drift-check.yml`](.github/workflows/drift-check.yml), it keeps
@@ -131,8 +132,11 @@ without a reason, past its date, or no longer needed is reported.
 
 **CI.** [`ci.yml`](.github/workflows/ci.yml) runs on every pull request: links
 and anchors between the standards, the baseline against the drift check
-([`baseline/self-check.mjs`](baseline/self-check.mjs)), and zizmor on the
-workflows.
+([`baseline/self-check.ts`](baseline/self-check.ts)), a typecheck of the
+scripts under the strict config in
+[`skills/typescript-strict`](skills/typescript-strict/SKILL.md), a dependency
+audit, and zizmor on the workflows. The scripts have no runtime dependencies;
+TypeScript and the Node types are dev dependencies for the typecheck.
 
 **The website.** <https://danfry.dev/standards.md> and `/standards/<topic>.md`
 are generated from this repository, which stays the source of truth.
