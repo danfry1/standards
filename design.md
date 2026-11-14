@@ -32,11 +32,11 @@ a file inside the module.
 ```ts
 // ✅ the contract, and nothing else
 // billing/index.ts
-export type { Invoice, InvoiceError } from "./types.js";
-export { createBilling } from "./billing.js";
+export type { Invoice, InvoiceError } from "./types.ts";
+export { createBilling } from "./billing.ts";
 
 // ❌ reaching past the boundary couples you to the implementation
-import { roundToCents } from "../billing/internal/money.js";
+import { roundToCents } from "../billing/internal/money.ts";
 ```
 
 If a caller needs something that is not exported, the contract is incomplete:
@@ -151,7 +151,7 @@ dependency's contract as small as the consumer's actual needs.
 
 ```ts
 // ❌ hard-wired: can't run without a real database and the real clock
-import { db } from "../db/index.js";
+import { db } from "../db/index.ts";
 export function expireTrials() {
   return db.trials.expireBefore(new Date());
 }
@@ -206,7 +206,7 @@ implementation, and breaks when the implementation is improved
 
 ```ts
 // ✅ the contract, end to end, with in-memory fakes
-import { createTrials } from "../trials/index.js";
+import { createTrials } from "../trials/index.ts";
 
 it("expires trials that started before the cutoff", async () => {
   const store = new InMemoryTrialStore([trialStartedAt("2026-01-01")]);
