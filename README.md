@@ -30,6 +30,7 @@ checked across every repository by the [drift check](#the-drift-check).
 
 | Standard | What it covers |
 | --- | --- |
+| [Module design](design.md) | 13 rules for code you can audit at its boundaries: deep modules, typed contracts that show every failure, dependencies passed in, no hidden channels, each module tested in isolation with fakes proven against the real thing, and contract changes visible in review. |
 | [TypeScript](typescript.md) | 27 rules for config-independent type strictness: discriminated unions, branded primitives, precise generics, `unknown` at boundaries, `Result` over throwing, and no `any`, `enum` or unchecked `as`. |
 | [Error handling](error-handling.md) | 14 rules so no error is ever opaque: typed errors with a literal discriminant, structured context, a preserved `cause`, narrowing instead of casting in `catch`, and one top-level handler. |
 | [Testing](testing.md) | 19 rules for tests that catch regressions rather than granting false confidence: exact assertions, specific errors, determinism, isolation, and behavior over implementation. |
