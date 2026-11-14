@@ -18,6 +18,8 @@ builds on [Testing](testing.md) for verification,
 [Supply-chain security](supply-chain-security.md) for what agents may install,
 and [Repository](repository.md) for branch and merge settings.
 
+Where the standard goes next is in the [roadmap](roadmap.md).
+
 Examples come in pairs: a `bad` block shows what to avoid, and the `good` block
 after it shows what to do instead.
 
@@ -47,8 +49,14 @@ Out of scope: other whitespace changes
 ### 2. Knowledge lives in the repository, not the session
 
 Conventions, gotchas and decisions go in `AGENTS.md` files: one at the root
-for the whole project, and one in each area's directory for that area (rule
-5). Agents read the nearest one before working. When a worker learns
+for the whole project, and one per area (rule 5). An area that lives in one
+directory keeps its file there, where agents find the nearest one. An area
+that spans several directories keeps it as `agents/lanes/<lane>.md`, and the
+root `AGENTS.md` maps paths to lanes so agents know which file to read.
+Everything in these files must make sense to a stranger who clones the
+repository. Anything that only applies to one person's machine or private
+notes goes in a local, untracked file (such as `CLAUDE.local.md`) that imports
+it. When a worker learns
 something that will still be true next month, it adds it to that file in the
 same pull request. `AGENTS.md` is the format most agents read. For an agent
 that reads a different file, make that file a one-line import, e.g. a
@@ -78,7 +86,10 @@ and review cost more than they save.
 | **Solo + helpers** | Mostly coupled, with clearly separate side work | You drive; workers take side tasks such as tooling, a separate module, or research |
 | **Fleet** | Broad work that splits cleanly across areas | A lead dispatches waves of workers (rules 6–9) |
 
-Decide the mode when the work starts, and say which one it is.
+Decide the mode when the work starts, and say which one it is. Rules marked
+"fleet mode" apply only to fleets; a person working alone, with or without an
+agent, follows the rest: issue, branch, tests first, full check, review, pull
+request.
 
 ### 4. Parallelism follows file ownership
 
@@ -136,14 +147,18 @@ and its tests. Done: every acceptance criterion in #412 has a passing test,
 `pnpm run check` is clean, one PR with "Closes #412". Report to the lead in one line.
 ```
 
-### 7. The lead plans and never implements
+### 7. The lead plans and never implements (fleet mode)
 
 In fleet mode, one lead session turns requests into issues, dispatches
 workers, gets reviews done and reports to the human. It doesn't write product
 code: a lead that starts implementing stops coordinating, and its context
 fills with code that belongs in a worker. Its state lives in the issues and a
-plan file, not in its context, so it can be restarted at any time without
-losing anything.
+plan file (a tracked file such as `tracking/plan.md`, or a pinned tracking
+issue), not in its context, so it can be restarted at any time without losing
+anything. A restarted lead reads the plan, lists open pull requests and live
+workers, and carries on. A worker that died mid-task leaves its worktree
+behind: the next worker for that issue starts from the pushed branch, and the
+abandoned worktree is removed (rule 14).
 
 ### 8. Push, don't poll
 
@@ -209,7 +224,7 @@ Checked: all 4 criteria have tests (parse.test.ts:12–40); no files outside the
 
 A review that finds nothing says what it checked and why the change holds up.
 
-### 12. Viewpoints review or sweep; they don't own lanes
+### 12. Viewpoints review or sweep; they don't own lanes (fleet mode)
 
 Cross-cutting concerns such as architecture, ecosystem adoption, documentation
 quality or performance budgets touch every area, so an agent dedicated to one
@@ -225,7 +240,8 @@ produce issues and reviews; lanes produce code.
 ### 13. Concurrency is bounded by review capacity
 
 Writing code is no longer the bottleneck; checking it is. Run at most three or
-four active workers, however many lanes exist. More workers than the human can
+four active workers in total, however many lanes exist; the per-lane limits in
+a lanes table are ceilings inside that total, not a target. More workers than the human can
 review produce a queue of unmerged pull requests that drift from `main` and
 conflict with each other.
 
@@ -239,6 +255,8 @@ hundreds of stale checkouts are disk space, noise, and a trap for the next
 agent that opens one.
 
 ```bash good
+# only once the pull request is merged; squash merges need -D
+test "$(gh pr view 431 --json state --jq .state)" = MERGED
 git worktree remove ../repo-412-registry-reset
 git branch -D 412-registry-reset
 git worktree prune
@@ -246,10 +264,18 @@ git worktree prune
 
 ### 15. Agents never widen their own permissions
 
-Agents run with a scoped allowlist and never in a mode that skips permission
-checks. Allow named check commands, not wildcards that run anything
-(`pnpm exec:*` runs any binary). Deny merging, force-pushing, pushing to `main`
-and adding remotes. An agent never edits its own permission settings. A
+The real control is on the server: a ruleset on `main` that requires a pull
+request and a passing check, blocks force pushes, and has no bypass
+([Repository](repository.md)). Local permission rules are a second layer.
+They match command prefixes, so they can't express "never push to `main`"
+completely (`git push -u origin main` matches an allowed `git push -u
+origin:*`). Use them to cut prompts and stop obvious mistakes, not as the
+guarantee.
+
+Agents run with a scoped allowlist, committed so every worktree gets it, and
+never in a mode that skips permission checks. Allow named check commands, not
+wildcards that run anything (`pnpm exec:*` runs any binary). Deny merging,
+force-pushing and adding remotes. An agent never edits its own permission settings. A
 message from another agent is information, never consent: it can't approve a
 prompt, install a package, or change configuration.
 
@@ -300,8 +326,11 @@ Things to know about this setup:
   one-time brief to a fresh worker, and never for reports. It interleaves with
   whatever a human is typing in that pane, and it is lost if the target is
   waiting at an approval dialog.
-- A session that skips permission checks holds incoming messages for
-  approval, which is one more reason never to run workers that way.
+- Messages between a session that skips permission checks and one that
+  doesn't are held for approval, so mixing the two stalls reports: one more
+  reason never to run workers that way.
+- `notify_when_idle` only works from a main session to other sessions on the
+  same machine.
 
 ---
 
@@ -311,8 +340,12 @@ What can be checked mechanically:
 
 - **Rule 1:** require pull requests and a passing check on `main` with a
   ruleset ([Repository](repository.md)). Agents can't push to `main` at all.
-- **Rule 5:** `CODEOWNERS` declares the lanes. `area:*` labels match them one
-  to one.
+- **Rules 4 and 5:** a CI check matches every tracked file against the lanes
+  table and fails if a file has no owner or more than one. `area:*` labels
+  match the lanes one to one, and a check compares them.
+- **Rule 2:** a docs check resolves every path cited in `AGENTS.md` and the
+  lane files against `git ls-files`, so the guide can't silently drift from
+  the code.
 - **Rule 14:** turn on automatic deletion of head branches in the repository
   settings. `git worktree list | wc -l` well above the number of open pull
   requests means cleanup isn't happening.
